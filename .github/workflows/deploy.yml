@@ -1,5 +1,5 @@
-# 影子部署：把站点发布到 GitHub Pages 预览地址，用于验证「构建 → 部署 → 访问」全链路。
-# 明确不动正式域名 wanfengyunli.top（切域名是 M5 的事）。
+# 生产部署：构建并通过 GitHub Actions 发布到 GitHub Pages。
+# 站点已认领自定义域名 wanfengyunli.top（2026-09-27 上线）。
 #
 # 为什么不需要 base 配置：站点仓库名是 <user>.github.io（GitHub 用户主站仓库），
 # 预览地址就是根路径 https://wanfengyunli1100-byte.github.io/ —— 与站内硬编码的
@@ -7,12 +7,13 @@
 # 若改用其它仓库名，站点会落在 /<repo>/ 子路径，需把所有绝对路径改成
 # import.meta.env.BASE_URL 前缀（约 8-10 处）——这是选择主站仓库名的直接原因。
 #
-# 影子期不收录：构建时注入 PUBLIC_NOINDEX=1，BaseLayout 会输出
-# <meta name="robots" content="noindex">；而 canonical / og:url / sitemap 仍指向
-# 正式域名（那是"影子站指向正本"的正常语义，且是单向声明，改不到正式站）。
+# 正式上线（2026-09-27）：站点已认领自定义域名 wanfengyunli.top。
+# 影子期的 PUBLIC_NOINDEX 注入已移除 —— 正式站必须允许搜索引擎收录。
 #
-# 部署前置（一次性）：仓库 Settings → Pages → Source 选 "GitHub Actions"。
+# 部署前置（一次性）：仓库 Settings → Pages → Source 选 "GitHub Actions"，
+# 并在 Pages 里填 Custom domain = wanfengyunli.top（证书签发后再勾 Enforce HTTPS）。
 # 也可用 CLI：gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
+#            gh api -X PUT  repos/<owner>/<repo>/pages -f cname=wanfengyunli.top
 
 name: Deploy to GitHub Pages
 
@@ -41,8 +42,6 @@ jobs:
       # cache 会保留 Astro 构建缓存（将来接入图片管线后，这里能省下图片优化时间）
       - name: Build and upload site
         uses: withastro/action@v6
-        env:
-          PUBLIC_NOINDEX: '1'    # 影子站不收录
         with:
           node-version: 24       # 与本地开发环境一致
           out-dir: dist
