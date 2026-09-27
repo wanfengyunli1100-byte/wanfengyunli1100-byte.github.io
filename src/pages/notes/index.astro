@@ -1,0 +1,80 @@
+---
+/**
+ * 笔记列表页（M3b）
+ * 索引表：日期 / 标题 / 标签，按时间倒序；没有笔记时给出空状态提示。
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { site } from '../../config/site';
+import { formatDate } from '../../utils/formatDate';
+
+const notes = (await getCollection('notes', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+---
+
+<BaseLayout
+  title={`笔记 · ${site.name}`}
+  description="嵌入式系统、AI 应用部署与硬件实践的技术笔记。"
+>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="kicker">NOTES / {notes.length} ITEMS</p>
+      <h1>笔记</h1>
+      <p class="lead">
+        做项目过程中真正踩过的坑与想清楚的事。写给自己看，顺手公开。
+      </p>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      {
+        notes.length === 0 ? (
+          <p class="empty mono">
+            暂无笔记 —— 在 src/content/notes/ 里加一个 md 文件即可，本页会自动多一行
+          </p>
+        ) : (
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th scope="col" class="col-date">日期</th>
+                <th scope="col">标题</th>
+                <th scope="col">标签</th>
+              </tr>
+            </thead>
+            <tbody>
+              {notes.map((n) => (
+                <tr>
+                  <td class="date">{formatDate(n.data.date)}</td>
+                  <td class="name">
+                    <a href={`/notes/${n.id}/`}>{n.data.title}</a>
+                  </td>
+                  <td>{n.data.tags.join(' / ') || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .date {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  /* 条目链接（.tbl .name a）在 base.css */
+
+  .empty {
+    padding: var(--sp-3) 0;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+</style>

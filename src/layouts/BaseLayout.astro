@@ -1,0 +1,235 @@
+---
+/**
+ * 全站基础版式：顶部规格条 + <head> 元信息 + 跳转正文 + 顶栏 + 内容槽 + 页脚
+ * M3.5 互动层：页面切换淡入（ClientRouter）+ 回到顶部（A5），滚动淡入脚本见页面底部
+ */
+import { ClientRouter } from 'astro:transitions';
+// 自托管字体（替代 Google Fonts CDN）：只引 latin 子集 + 实际用到的 5 个字重。
+// 中文字形不走这里 —— 中文用系统无衬线 + --ls-wide 字距模拟（见 tokens.css 纪律 5）。
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-500.css';
+import '@fontsource/inter/latin-600.css';
+import '@fontsource/inter/latin-700.css';
+import '@fontsource/inter/latin-800.css';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { site } from '../config/site';
+
+interface Props {
+  /** 页面标题，不传用站点默认标题 */
+  title?: string;
+  description?: string;
+}
+
+const { title = site.title, description = site.description } = Astro.props;
+const ds = site.datasheet;
+
+// 分享卡片需要的绝对 URL：一律由配置里的 `site` 派生（单一信息源，不在模板里重写第二遍域名）
+const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
+const ogImage = new URL('/og.png', Astro.site).href;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={pageUrl} />
+    {/* 分享卡片：微信 / 钉钉 / 飞书等按 OG 渲染（卡片图见 public/og.png，源文件 docs/og_card.html） */}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={pageUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <ClientRouter />
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main">跳到正文</a>
+
+    <!-- 顶部规格条：数据手册的"型号 / 版本 / 地点" -->
+    <div class="docbar">
+      <div class="wrap docbar-in">
+        <span>{ds.model} · <b>{ds.label}</b></span>
+        <span>{ds.rev} · {ds.place}</span>
+      </div>
+    </div>
+
+    <Nav />
+    <!-- tabindex="-1"：让 <main> 可被程序化聚焦 —— skip-link 落地（#11）与
+         SPA 转场后的焦点管理（#18）都依赖它；它不进正常 Tab 序，键盘习惯不变 -->
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer />
+
+    <!-- M3.5 · A5：回到顶部（滚动超过一屏才出现）
+         默认带 hidden：无 JS 时它不渲染、不进 Tab 序（否则键盘用户会撞上看不见的焦点），
+         脚本初始化时移除 hidden，行为与视觉完全由脚本接管 -->
+    <button id="toTop" class="to-top" type="button" aria-label="回到顶部" hidden>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M12 19V5M5 12l7-7 7 7"></path>
+      </svg>
+    </button>
+
+    <script>
+      /** 统一入口：脚本里的动态效果一律先问这一句（CSS 侧另有 @media 兜底） */
+      function prefersReducedMotion() {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      }
+
+      /**
+       * M3.5 · A2：区块进入视口时纯淡入（只播一次）
+       *
+       * 关键细节：只给"还在视口下方"的区块加隐藏类。
+       * 首屏内、以及已经在视口上方的区块（带 hash 直达 / 浏览器恢复滚动位置时会出现）
+       * 必须直接置为可见——否则它们永远不会"进入"视口，内容会永久留在 opacity: 0。
+       */
+      function initFade() {
+        if (prefersReducedMotion()) return;
+
+        const els = Array.from(
+          document.querySelectorAll<HTMLElement>('main > section, main > header, main > .pager'),
+        );
+        if (!els.length) return;
+
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+              entry.target.classList.add('in');
+              io.unobserve(entry.target);
+            });
+          },
+          { threshold: 0.05, rootMargin: '0px 0px -36px 0px' },
+        );
+
+        els.forEach((el) => {
+          const top = el.getBoundingClientRect().top;
+          if (top < window.innerHeight) {
+            // 已在视口内或已被滚过：直接可见，不参与淡入
+            el.classList.add('in');
+            return;
+          }
+          el.classList.add('fade-ready');
+          io.observe(el);
+        });
+      }
+
+      /** M3.5 · A5：回到顶部的显隐与点击 */
+      let rafId = 0;
+
+      function updateToTop() {
+        const btn = document.getElementById('toTop');
+        if (!btn) return;
+        btn.classList.toggle('on', window.scrollY > window.innerHeight * 0.8);
+      }
+
+      function onToTopScroll() {
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+          rafId = 0;
+          updateToTop();
+        });
+      }
+
+      /**
+       * #18：ClientRouter 转场后的焦点管理
+       *
+       * 转场不走浏览器的"换新文档"流程，焦点会留在 BODY —— 屏幕阅读器听不到页面已切换。
+       * 只在 SPA 跳转后把焦点移到 <main>（tabindex="-1"）：
+       *   1. 首次加载不动焦点（直接访问 / 刷新时抢焦点是打扰）
+       *   2. 带 hash 时不动焦点 —— 滚动完全交给浏览器锚点定位，不跟它抢
+       *   3. preventScroll —— 移动焦点不引起页面跳动
+       *
+       * "这次是不是 SPA 跳转"用 astro:after-swap 打标记判断（首次加载不派发该事件）。
+       * 标记落在 documentElement 属性上而不是脚本变量里：内联脚本会在每次转场后重新执行，
+       * 变量会被重置，DOM 上的标记不会。
+       */
+      document.addEventListener('astro:after-swap', () => {
+        document.documentElement.setAttribute('data-spa-swap', '');
+      });
+
+      function initFocus() {
+        const html = document.documentElement;
+        if (!html.hasAttribute('data-spa-swap')) return; // 首次加载：不动焦点
+        html.removeAttribute('data-spa-swap'); // 标记只用一次
+        if (location.hash) return; // 有锚点：滚动交给浏览器
+        document.getElementById('main')?.focus({ preventScroll: true });
+      }
+
+      function initPage() {
+        initFade();
+        initFocus();
+
+        const btn = document.getElementById('toTop');
+        if (btn) {
+          // 有 JS 了才交给 CSS 的 opacity/visibility 控制显隐（保持原有淡入效果）
+          btn.hidden = false;
+          btn.onclick = () =>
+            window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+        }
+
+        window.removeEventListener('scroll', onToTopScroll);
+        window.addEventListener('scroll', onToTopScroll, { passive: true });
+        window.removeEventListener('load', updateToTop);
+        window.addEventListener('load', updateToTop);
+
+        // hash 直达 / 恢复滚动位置时，滚动可能发生在 page-load 之后
+        updateToTop();
+        setTimeout(updateToTop, 300);
+      }
+
+      document.addEventListener('astro:page-load', initPage);
+    </script>
+  </body>
+</html>
+
+<style>
+  .docbar {
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .docbar-in {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--bar-h);
+    font-family: var(--font-mono);
+    font-size: var(--fs-0);
+    letter-spacing: var(--ls-wide);
+    color: var(--text-muted);
+  }
+
+  .docbar b {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 560px) {
+    /* 小屏：规格条改为两行堆叠，避免 mono 字符串撑开页面（曾导致整页横向溢出） */
+    .docbar-in {
+      height: auto;
+      /* 只改纵向：横向内边距交给 .wrap（≤800px 时是 20px）。
+         写成 padding: 6px 0 会因 scoped 特异性压过 .wrap，把左右内边距抹成 0，
+         规格条与导航/正文左边界不齐（复核 P2 实测 left=0）。 */
+      padding-block: 6px;
+      flex-wrap: wrap;
+      row-gap: 2px;
+      font-size: 10.5px;
+    }
+  }
+</style>

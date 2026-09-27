@@ -1,0 +1,5 @@
+# 全站允许抓取；并声明 sitemap 位置，便于搜索引擎发现全部页面
+User-agent: *
+Allow: /
+
+Sitemap: https://wanfengyunli.top/sitemap-index.xml

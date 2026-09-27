@@ -1,0 +1,177 @@
+---
+/**
+ * 项目详情页：元信息规格表 + 技术亮点 + 精选大图 + Markdown 正文 + 上下篇导航
+ * 路由 = 文件名：src/content/projects/chatty_bot.md → /projects/chatty_bot/
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+import { site } from '../../config/site';
+
+export async function getStaticPaths() {
+  const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
+    (a, b) => a.data.order - b.data.order,
+  );
+
+  return projects.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: {
+      entry,
+      index: i,
+      prev: i > 0 ? projects[i - 1] : undefined,
+      next: i < projects.length - 1 ? projects[i + 1] : undefined,
+    },
+  }));
+}
+
+const { entry, index, prev, next } = Astro.props;
+const d = entry.data;
+const { Content } = await render(entry);
+
+/** 规格表：两列键值对，按两项一行排布 */
+const spec: { k: string; v: string; b?: boolean }[] = [
+  { k: 'PERIOD', v: d.period },
+  { k: 'ROLE', v: d.role, b: true },
+  { k: 'STATUS', v: d.status },
+  { k: 'FIELD', v: d.tags[0] ?? '—' },
+  { k: 'STACK', v: d.stack.join(' / ') },
+  { k: 'ORDER', v: String(index + 1).padStart(2, '0') },
+];
+const specRows: (typeof spec)[] = [];
+for (let i = 0; i < spec.length; i += 2) specRows.push(spec.slice(i, i + 2));
+---
+
+<BaseLayout title={`${d.title} · ${site.name}`} description={d.summary}>
+  <header class="page-head">
+    <div class="wrap">
+      <a class="back" href="/projects/">← 项目索引</a>
+      <p class="kicker">{d.period} · {d.tags[0] ?? 'PROJECT'}</p>
+      <h1>{d.title}</h1>
+      <p class="lead">{d.summary}</p>
+
+      <table class="spec">
+        <tbody>
+          {
+            specRows.map((row) => (
+              <tr>
+                {row.map((cell) => (
+                  <>
+                    <th scope="row">{cell.k}</th>
+                    <td>{cell.b ? <b>{cell.v}</b> : cell.v}</td>
+                  </>
+                ))}
+                {row.length === 1 && <td colspan="2" />}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </header>
+
+  {
+    d.highlights.length > 0 && (
+      <section>
+        <div class="wrap">
+          <div class="sec-title">
+            <span class="no">01</span>
+            <h2>技术亮点</h2>
+            <span class="hint">HIGHLIGHTS</span>
+          </div>
+          <ul class="hl">
+            {d.highlights.map((h) => (
+              <li>{h}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  <section>
+    <div class="wrap">
+      <div class="sec-title">
+        <span class="no">02</span>
+        <h2>项目图</h2>
+        <span class="hint">FIGURES</span>
+      </div>
+      {
+        d.cover ? (
+          <img class="cover" src={d.cover} alt={`${d.title} 项目图`} />
+        ) : (
+          <div class="ph cover">项目大图 · 16:10（原始素材待接入）</div>
+        )
+      }
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-title">
+        <span class="no">03</span>
+        <h2>说明</h2>
+        <span class="hint">DOCS</span>
+      </div>
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+  </section>
+
+  <nav class="pager" aria-label="项目导航">
+    <div class="wrap pager-in">
+      <span>
+        {prev ? <a href={`/projects/${prev.id}/`}>← {prev.data.title}</a> : <span class="dim">这是第一个</span>}
+      </span>
+      <span class="right">
+        {next ? <a href={`/projects/${next.id}/`}>{next.data.title} →</a> : <span class="dim">这是最后一个</span>}
+      </span>
+    </div>
+  </nav>
+</BaseLayout>
+
+<style>
+  /* 技术亮点 */
+  .hl {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+    max-width: 72ch;
+  }
+
+  .hl li {
+    position: relative;
+    padding-left: 20px;
+    font-size: 14.5px;
+    color: var(--text-secondary);
+  }
+
+  .hl li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.65em;
+    width: 8px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  /* 图 */
+  .cover {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border: 1px solid var(--border-strong);
+    object-fit: cover;
+    display: block;
+  }
+
+  /* 正文样式在 base.css 的 .prose（与笔记详情页共用） */
+
+  /* 上下篇导航在 base.css 的 .pager / .pager-in / .dim（与笔记详情页共用） */
+
+  @media (max-width: 800px) {
+    .page-head {
+      padding: 32px 0 24px;
+    }
+  }
+</style>

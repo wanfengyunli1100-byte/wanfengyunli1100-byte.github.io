@@ -1,0 +1,174 @@
+---
+/**
+ * 笔记详情页（M3b）
+ * 布局：正文（左）+ 右侧固定目录（b1：滚动高亮当前小节）
+ * 路由 = 文件名：src/content/notes/xxx.md → /notes/xxx/
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+import { site } from '../../config/site';
+import { formatDate } from '../../utils/formatDate';
+
+export async function getStaticPaths() {
+  const notes = (await getCollection('notes', ({ data }) => !data.draft)).sort(
+    (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+  );
+
+  return notes.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: {
+      entry,
+      newer: i > 0 ? notes[i - 1] : undefined,
+      older: i < notes.length - 1 ? notes[i + 1] : undefined,
+    },
+  }));
+}
+
+const { entry, newer, older } = Astro.props;
+const d = entry.data;
+const { Content, headings } = await render(entry);
+
+/** 目录只取二级标题 */
+const toc = headings.filter((h) => h.depth === 2);
+---
+
+<BaseLayout title={`${d.title} · ${site.name}`} description={d.summary}>
+  <header class="page-head">
+    <div class="wrap">
+      <a class="back" href="/notes/">← 笔记列表</a>
+      <p class="kicker">{formatDate(d.date)} · {d.tags.join(' / ') || 'NOTE'}</p>
+      <h1 class="note-title">{d.title}</h1>
+      <p class="lead">{d.summary}</p>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap note-layout">
+      <article class="prose">
+        <Content />
+      </article>
+
+      {
+        toc.length > 1 && (
+          <aside class="toc" aria-label="目录">
+            <p class="mono toc-cap">CONTENTS</p>
+            <ul id="tocList">
+              {toc.map((h) => (
+                <li>
+                  <a href={`#${h.slug}`} data-toc={h.slug}>
+                    {h.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        )
+      }
+    </div>
+  </section>
+
+  <nav class="pager" aria-label="笔记导航">
+    <div class="wrap pager-in">
+      <span>
+        {older ? <a href={`/notes/${older.id}/`}>← {older.data.title}</a> : <span class="dim">这是最早一篇</span>}
+      </span>
+      <span class="right">
+        {newer ? <a href={`/notes/${newer.id}/`}>{newer.data.title} →</a> : <span class="dim">这是最新一篇</span>}
+      </span>
+    </div>
+  </nav>
+</BaseLayout>
+
+<style>
+  .note-title {
+    font-size: clamp(26px, 3.6vw, 38px) !important;
+    letter-spacing: -0.8px;
+    line-height: 1.2;
+  }
+
+  .note-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 190px;
+    gap: var(--sp-6);
+    align-items: start;
+  }
+
+  /* 目录 */
+  .toc {
+    position: sticky;
+    top: calc(var(--nav-h) + var(--sp-3));
+  }
+
+  .toc-cap {
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 7px;
+  }
+
+  .toc a {
+    display: block;
+    padding-left: 10px;
+    border-left: 1px solid var(--border);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .toc a:hover {
+    color: var(--text);
+  }
+
+  .toc a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+
+  /* 上下篇导航在 base.css 的 .pager / .pager-in / .dim（与项目详情页共用） */
+
+  @media (max-width: 900px) {
+    .note-layout {
+      /* minmax(0, 1fr)：1fr 的最小值是 auto，窄屏下会被长代码行撑破 */
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+
+    .toc {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  /** 目录滚动高亮（M3.5 起每次页面加载都重新初始化，兼容 ClientRouter 的局部替换） */
+  function initToc() {
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('#tocList a'));
+    const targets = links
+      .map((a) => ({ link: a, el: document.getElementById(a.dataset.toc ?? '') }))
+      .filter((t): t is { link: HTMLAnchorElement; el: HTMLElement } => Boolean(t.el));
+
+    if (!targets.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          links.forEach((a) => a.classList.remove('active'));
+          targets.find((t) => t.el === entry.target)?.link.classList.add('active');
+        });
+      },
+      { rootMargin: '-88px 0px -70% 0px', threshold: 0 },
+    );
+    targets.forEach((t) => observer.observe(t.el));
+  }
+
+  document.addEventListener('astro:page-load', initToc);
+</script>

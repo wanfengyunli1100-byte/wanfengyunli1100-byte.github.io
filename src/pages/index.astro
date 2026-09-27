@@ -1,0 +1,375 @@
+---
+/**
+ * 首页（数据手册风）
+ *
+ * 结构：页头规格表 → 01 精选项目 → 02 项目索引 → 03 能力 → 04 联系
+ * 项目数据全部来自 content collection：加一个 md 文件，本页自动多一行。
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { site, profileRow, toPairs, shortBase } from '../config/site';
+import { formatDate } from '../utils/formatDate';
+
+const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+
+/** 最新笔记（首页只展示前 3 条） */
+const notes = (await getCollection('notes', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+
+/** 精选：优先取 featured: true，没有就取第一个 */
+const featured = projects.find((p) => p.data.featured) ?? projects[0];
+
+/** 首页规格表要展示的行（顺序即展示顺序）；值全部来自 site.profile，BASE 用派生短句 */
+const profile = ['ROLE', 'BASE', 'FIELD', 'EDU', 'CURRENTLY', 'STATUS'].map((k) => {
+  const row = profileRow(k);
+  return k === 'BASE' ? { ...row, v: shortBase(row.v) } : row;
+});
+
+/** 规格表按两列键值对排布（一行两项） */
+const pairs = toPairs(profile);
+
+/**
+ * 能力表数据 —— 首页视角：按 HARDWARE / SOFTWARE / AI 三层技术栈分组，供快速扫读
+ *
+ * 与 about.astro 的 `focus` 是**两种视角、分别维护**，不是同一份数据的两个副本：
+ * 首页讲"技术栈分几层"，关于页讲"能做哪些能力领域"（含 UART/SPI、Docker 等首页不列的具体项）。
+ * 复核报告 #19 指出这有对不上的风险 —— 若日后合并为单一来源，先定分组口径再动。
+ */
+const capabilities = [
+  {
+    k: 'HARDWARE',
+    items: ['STM32 / HAL', '嵌入式 C', 'KiCad PCB 设计', 'OpenSCAD 结构建模', '3D 打印'],
+  },
+  {
+    k: 'SOFTWARE',
+    items: ['Qt / C++', 'Python', 'PyQt6', '微信小程序', '多线程架构'],
+  },
+  {
+    k: 'AI',
+    items: ['QLoRA 微调', 'Ollama 本地推理', 'n8n Agent 编排', '4bit 量化部署'],
+  },
+];
+---
+
+<BaseLayout>
+  <!-- ===== 页头：手册页头 + 规格表 ===== -->
+  <header class="page-head">
+    <div class="wrap">
+      <p class="kicker">EMBEDDED AI APPLICATION DEVELOPMENT</p>
+      <h1>{site.name}</h1>
+      <p class="lead">
+        从 STM32 硬件底层到 QLoRA 模型部署。自己画板子、写固件、做上位机，也把 3B 模型塞进 4GB 显卡。
+      </p>
+
+      <table class="spec">
+        <tbody>
+          {
+            pairs.map((row) => (
+              <tr>
+                {row.map((cell) => (
+                  <>
+                    <th scope="row">{cell.k}</th>
+                    <td>{cell.b ? <b>{cell.v}</b> : cell.v}</td>
+                  </>
+                ))}
+                {row.length === 1 && <td colspan="2" />}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </header>
+
+  <!-- ===== 01 精选项目 ===== -->
+  {
+    featured && (
+      <section id="projects">
+        <div class="wrap">
+          <div class="sec-title">
+            <span class="no">01</span>
+            <h2>精选项目</h2>
+            <span class="hint">FEATURED</span>
+          </div>
+          <div class="feature">
+            {featured.data.cover ? (
+              <img class="feature-ph cover-img" src={featured.data.cover} alt={`${featured.data.title} 项目图`} />
+            ) : (
+              <div class="ph feature-ph">精选项目大图 · 16:10</div>
+            )}
+            <div class="feature-body">
+              <p class="mono ft-meta">
+                {featured.data.period} · {featured.data.tags[0] ?? 'PROJECT'}
+              </p>
+              <h3>
+                <a href={`/projects/${featured.id}/`}>{featured.data.title}</a>
+              </h3>
+              <p>{featured.data.summary}</p>
+              <ul class="hl-mini">
+                {featured.data.highlights.slice(0, 2).map((h) => (
+                  <li>{h}</li>
+                ))}
+              </ul>
+              <a class="more mono" href={`/projects/${featured.id}/`}>
+                查看详情 →
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- ===== 02 项目索引 ===== -->
+  <section id="index">
+    <div class="wrap">
+      <div class="sec-title">
+        <span class="no">02</span>
+        <h2>项目索引</h2>
+        <span class="hint">{projects.length} ITEMS</span>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">项目</th>
+            <th scope="col">领域</th>
+            <th scope="col" class="col-stack">技术栈</th>
+            <th scope="col">状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            projects.map((p, i) => (
+              <tr>
+                <td class="num">{String(i + 1).padStart(2, '0')}</td>
+                <td class="name">
+                  <a href={`/projects/${p.id}/`}>{p.data.title}</a>
+                </td>
+                <td>{p.data.tags[0] ?? '—'}</td>
+                <td class="stack">{p.data.stack.join(' / ')}</td>
+                <td class="st">{p.data.status}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 03 最新笔记 ===== -->
+  {
+    notes.length > 0 && (
+      <section id="notes">
+        <div class="wrap">
+          <div class="sec-title">
+            <span class="no">03</span>
+            <h2>最新笔记</h2>
+            <span class="hint">{notes.length} ITEMS</span>
+          </div>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th scope="col" class="col-date">日期</th>
+                <th scope="col">标题</th>
+                <th scope="col">标签</th>
+              </tr>
+            </thead>
+            <tbody>
+              {notes.slice(0, 3).map((n) => (
+                <tr>
+                  <td class="date">{formatDate(n.data.date)}</td>
+                  <td class="name">
+                    <a href={`/notes/${n.id}/`}>{n.data.title}</a>
+                  </td>
+                  <td>{n.data.tags.join(' / ') || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p class="more-line mono">
+            <a href="/notes/">全部笔记 →</a>
+          </p>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- ===== 04 能力 ===== -->
+  <section id="skills">
+    <div class="wrap">
+      <div class="sec-title">
+        <span class="no">04</span>
+        <h2>能力</h2>
+        <span class="hint">CAPABILITIES</span>
+      </div>
+      <table class="cap">
+        <tbody>
+          {
+            capabilities.map((row) => (
+              <tr>
+                <th scope="row">{row.k}</th>
+                <td>
+                  {row.items.map((it, i) => (
+                    <>
+                      {i > 0 && <span class="dim"> · </span>}
+                      <span>{it}</span>
+                    </>
+                  ))}
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 05 联系 ===== -->
+  <section id="contact">
+    <div class="wrap">
+      <div class="sec-title">
+        <span class="no">05</span>
+        <h2>联系</h2>
+        <span class="hint">CONTACT</span>
+      </div>
+      <div class="contact">
+        <a class="item" href={`mailto:${site.email}`}>
+          <span class="k mono">EMAIL</span>
+          <span class="v">{site.email}</span>
+        </a>
+        <a class="item" href={site.github} target="_blank" rel="noopener">
+          <span class="k mono">GITHUB</span>
+          <span class="v">{site.githubUser}</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* ===== 01 精选 ===== */
+  .feature {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 28px;
+    align-items: center;
+  }
+
+  .feature-ph {
+    aspect-ratio: 16 / 10;
+  }
+
+  .cover-img {
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    object-fit: cover;
+    display: block;
+  }
+
+  .ft-meta {
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .feature-body h3 {
+    font-size: var(--fs-3);
+    letter-spacing: -0.3px;
+    margin-bottom: var(--sp-1);
+  }
+
+  .feature-body h3 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .feature-body h3 a:hover {
+    color: var(--accent);
+  }
+
+  .feature-body > p {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  .hl-mini {
+    list-style: none;
+    padding: 0;
+    margin: var(--sp-2) 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .hl-mini li {
+    position: relative;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .hl-mini li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7em;
+    width: 8px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .more {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .more:hover {
+    text-decoration: underline;
+  }
+
+  /* ===== 02 索引：表格与条目链接样式在 base.css 的 .tbl / .tbl .name a ===== */
+
+  /* ===== 03 笔记 ===== */
+  .date {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .more-line {
+    margin-top: var(--sp-2);
+  }
+
+  .more-line a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .more-line a:hover {
+    text-decoration: underline;
+  }
+
+  /* ===== 03 能力：公共部分在 base.css 的 .cap（表格三） ===== */
+  /* <th> 宽度是本页与 about 的**有意分叉**（150px vs 130px），故留在页面里 */
+  .cap th {
+    width: 150px;
+  }
+
+  /* ===== 04 联系：.contact / .item 在 base.css ===== */
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 800px) {
+    .feature {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .cap th {
+      width: 110px;
+      padding-right: 10px;
+    }
+  }
+</style>

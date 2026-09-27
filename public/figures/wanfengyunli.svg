@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-label="晚风云里 小程序与云开发结构框图">
+  <defs>
+    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4a4a4a"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: ui-monospace, Consolas, "PingFang SC", "Microsoft YaHei", monospace; }
+    .fig { font-size: 12px; fill: #8c8c8c; letter-spacing: .08em; }
+    .cap { font-size: 13.5px; fill: #1a1a1a; }
+    .sub { font-size: 11.5px; fill: #4a4a4a; }
+    .note { font-size: 12px; fill: #c2410c; letter-spacing: .04em; }
+    .box { fill: #ffffff; stroke: #4a4a4a; stroke-width: 1.4; }
+    .cell { fill: #f4f2ec; stroke: #c8c1b2; stroke-width: 1; }
+    .ln { stroke: #4a4a4a; stroke-width: 1.4; fill: none; marker-end: url(#a3); }
+    .lb { font-size: 11px; fill: #8c8c8c; }
+  </style>
+
+  <text class="fig" x="24" y="30">FIG. 03 / 晚风云里 · 小程序与云开发</text>
+
+  <!-- 小程序端 -->
+  <rect class="box" x="60" y="80" width="380" height="380"/>
+  <text class="cap" x="80" y="110">微信小程序 · 21 个页面</text>
+  <rect class="cell" x="80" y="126" width="340" height="80"/>
+  <text class="sub" x="100" y="158">聚会游戏 · 7 款</text>
+  <text class="lb" x="100" y="182">小姐牌 / 真心话 / 谁是卧底 / 海龟汤 …</text>
+  <rect class="cell" x="80" y="226" width="340" height="80"/>
+  <text class="sub" x="100" y="258">实用工具 · 3 款</text>
+  <text class="lb" x="100" y="282">麻将计分 / 微打卡 / 小决定</text>
+  <rect class="cell" x="80" y="326" width="340" height="80"/>
+  <text class="sub" x="100" y="358">商业 Demo · 咖啡点单</text>
+  <text class="lb" x="100" y="382">选品 → 规格 → 购物车 → 订单</text>
+
+  <!-- 连线 -->
+  <line class="ln" x1="440" y1="240" x2="556" y2="240"/>
+  <line class="ln" x1="556" y1="272" x2="440" y2="272"/>
+  <text class="lb" x="452" y="228">云函数 / 数据库 watch</text>
+
+  <!-- 云开发 -->
+  <rect class="box" x="560" y="140" width="340" height="300"/>
+  <text class="cap" x="580" y="170">云开发后端</text>
+  <rect class="cell" x="580" y="190" width="300" height="66"/>
+  <text class="sub" x="600" y="218">云数据库 watch</text>
+  <text class="lb" x="600" y="240">多人房间实时同步 · 断线重连</text>
+  <rect class="cell" x="580" y="272" width="300" height="66"/>
+  <text class="sub" x="600" y="300">云函数</text>
+  <text class="lb" x="600" y="322">业务逻辑 · 数据校验</text>
+  <rect class="cell" x="580" y="354" width="300" height="66"/>
+  <text class="sub" x="600" y="382">订单状态流转</text>
+  <text class="lb" x="600" y="404">待处理 → 制作中 → 已完成</text>
+
+  <text class="note" x="60" y="520">已备案上架 · 品牌从工具型转向作品集</text>
+  <text class="sub" x="60" y="548">200 条手工创作内容（真心话 + 大冒险）+ 50 组卧底词对</text>
+</svg>

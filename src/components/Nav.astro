@@ -1,0 +1,203 @@
+---
+/**
+ * 固定顶栏（数据手册风）
+ * - 纸底 + 下边线，始终可见
+ * - 当前项：路由页面按路径前缀高亮，首页锚点按区块高亮
+ * - 底边内嵌 2px 橙色阅读进度条（M3.5 · A4）
+ * - 导航项来自 src/config/site.ts，改导航只改那一个文件
+ */
+import { site } from '../config/site';
+---
+
+<nav class="navbar">
+  <div class="wrap nav-in">
+    <a class="brand" href="/">
+      {site.brand.left}<span>{site.brand.sep}</span>{site.brand.right}
+    </a>
+    <div class="links" id="navLinks">
+      {
+        site.nav.map((item) => (
+          <a href={item.href} data-nav-href={item.href}>
+            {item.label}
+          </a>
+        ))
+      }
+    </div>
+  </div>
+  <div class="progress" id="progress" aria-hidden="true"></div>
+</nav>
+
+<style>
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-in {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--nav-h);
+  }
+
+  .brand {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .brand span {
+    color: var(--accent);
+  }
+
+  .links {
+    display: flex;
+    gap: 20px;
+    /* 单点脆弱性保护：极窄屏放不下时在栏内滚动，而不是撑破整页。
+       ⚠ overflow 非 visible 会把另一轴也算成 auto 并裁剪绘制 —— outline 也在被裁之列。
+       padding 是给 :focus-visible 留的绘制空间，需要 ≥ outline 宽 2px + outline-offset 2px
+       （base.css:45-46）= 4px；少 1px 焦点环外缘就被削薄一圈
+       （原先写 3px，被 `site-probe.mjs` 的 focus 检查抓出来）。 */
+    overflow-x: auto;
+    min-width: 0;
+    padding: 4px;
+  }
+
+  .links a {
+    padding-bottom: 2px;
+    font-size: var(--fs-1);
+    color: var(--text-muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .links a:hover {
+    color: var(--text);
+  }
+
+  .links a.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  /* 阅读进度条：贴在下边线上，靠 transform 缩放，不触发重排 */
+  .progress {
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 100%;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    will-change: transform;
+  }
+
+  @media (max-width: 620px) {
+    .nav-in {
+      height: 48px;
+      gap: 10px;
+    }
+
+    .links {
+      gap: 11px;
+    }
+
+    .links a {
+      font-size: 11.5px;
+    }
+
+    .brand {
+      font-size: 11px;
+      letter-spacing: 0;
+    }
+  }
+
+  /* ≤380px：再收一档间距，让 320px 有真余量（只溢 1px 就会露出横向滚动条，复核 P2）。
+     必须放在 620px 块**之后**：媒体查询不改变特异性，同特异性下靠后的生效 ——
+     放前面会被 620px 块的 gap:11px 盖掉（实测踩过）。 */
+  @media (max-width: 380px) {
+    .links {
+      gap: 6px;
+    }
+  }
+</style>
+
+<script>
+  let rafId = 0;
+
+  function updateProgress() {
+    const bar = document.getElementById('progress');
+    if (!bar) return;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const p = max > 0 ? window.scrollY / max : 0;
+    bar.style.transform = `scaleX(${Math.min(1, Math.max(0, p))})`;
+  }
+
+  function onScroll() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = 0;
+      updateProgress();
+    });
+  }
+
+  function initNav() {
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('#navLinks a'));
+    const path = window.location.pathname;
+    const norm = path.endsWith('/') ? path : `${path}/`;
+
+    links.forEach((a) => a.classList.remove('active'));
+
+    // 1) 路由链接：按路径前缀高亮（/projects/ 也覆盖 /projects/xxx/）
+    links.forEach((a) => {
+      const href = a.dataset.navHref ?? '';
+      if (href.includes('#')) return;
+      if (href === '/') {
+        if (norm === '/') a.classList.add('active');
+        return;
+      }
+      if (norm === href || norm.startsWith(href)) a.classList.add('active');
+    });
+
+    // 2) 锚点链接：只在首页做区块高亮
+    const anchorLinks = links.filter((a) => a.dataset.navHref?.includes('#'));
+    const targets = anchorLinks
+      .map((a) => {
+        const id = a.dataset.navHref!.split('#')[1];
+        return { link: a, el: id ? document.getElementById(id) : null };
+      })
+      .filter((t): t is { link: HTMLAnchorElement; el: HTMLElement } => Boolean(t.el));
+
+    if (targets.length) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            links.forEach((a) => a.classList.remove('active'));
+            targets.find((t) => t.el === entry.target)?.link.classList.add('active');
+          });
+        },
+        { threshold: 0.3, rootMargin: '-96px 0px 0px 0px' },
+      );
+      targets.forEach((t) => observer.observe(t.el));
+    }
+
+    window.removeEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.removeEventListener('resize', onScroll);
+    window.addEventListener('resize', onScroll);
+    updateProgress();
+  }
+
+  document.addEventListener('astro:page-load', initNav);
+</script>

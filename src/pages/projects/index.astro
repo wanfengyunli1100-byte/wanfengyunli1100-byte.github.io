@@ -1,0 +1,68 @@
+---
+/**
+ * 项目列表页：索引表（数据手册风的"目录"）
+ * 数据来自 content collection，加一个 md 文件就会多一行，不用改代码。
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { site } from '../../config/site';
+
+const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+---
+
+<BaseLayout title={`项目索引 · ${site.name}`} description="软硬件自研项目索引：嵌入式系统、AI 应用部署、微信小程序。">
+  <header class="page-head">
+    <div class="wrap">
+      <p class="kicker">PROJECTS / {projects.length} ITEMS</p>
+      <h1>项目索引</h1>
+      <p class="lead">
+        软硬件全栈自研，每一件都从零做到能用。点项目名进入详情页。
+      </p>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">项目</th>
+            <th scope="col">领域</th>
+            <th scope="col" class="col-stack">技术栈</th>
+            <th scope="col">状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            projects.map((p, i) => (
+              <tr>
+                <td class="num">{String(i + 1).padStart(2, '0')}</td>
+                <td class="name">
+                  <a href={`/projects/${p.id}/`}>{p.data.title}</a>
+                </td>
+                <td>{p.data.tags[0] ?? '—'}</td>
+                <td class="stack">{p.data.stack.join(' / ')}</td>
+                <td class="st">{p.data.status}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+      <p class="note mono">
+        加一个项目 = 在 src/content/projects/ 里加一个 md 文件，本页自动多一行
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* 条目链接（.tbl .name a）在 base.css */
+
+  .note {
+    margin-top: var(--sp-2);
+    color: var(--text-muted);
+  }
+</style>

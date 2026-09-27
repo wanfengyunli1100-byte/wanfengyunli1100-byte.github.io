@@ -1,0 +1,657 @@
+/**
+ * 全局基础样式：重置、排版、区块骨架、通用零件（表格/标签/占位）、无障碍
+ * 组件自己的样式写在组件里（Astro 自动作用域隔离）
+ *
+ * 视觉口径：硬件数据手册风 —— 层级靠 1px 细线，不用阴影；全站直角
+ */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* 始终保留垂直滚动条槽位。否则从"长页面"切到"不满一屏的页面"时，滚动条消失 →
+     可用宽度 +15px → 居中的整页内容横向抖动 7.5px（半个滚动条宽）。
+     2026-09-25 老板实测发现"点导航会位移一点点"，根因即此。
+     必须写在 CSS 里：ClientRouter 切换时会重置 <html> 的 inline style，注入式修复会被清掉。 */
+  overflow-y: scroll;
+  /* 锚点跳转时只给**吸顶导航**留位置：.docbar（顶部规格条）是普通流内元素，落地时早滚出屏幕，
+     多算 --bar-h 会让每个锚点都白留 28px 空白（复核报告 #10 实测） */
+  scroll-padding-top: calc(var(--nav-h) + var(--sp-2));
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-2);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-bg);
+  color: var(--text);
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ===== 无障碍：键盘焦点 ===== */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* <main> 会被程序化聚焦（skip-link 落地 #11 / SPA 转场后 #18，见 BaseLayout 脚本）。
+   它是个整页容器，给全部内容画一圈轮廓没有意义，明确关掉。
+   作用域仅 #main —— 上面全局 :focus-visible 的键盘可见性口径不变。
+   （程序化聚焦在键盘操作后也可能命中 :focus-visible，所以两条都要写） */
+#main:focus,
+#main:focus-visible {
+  outline: none;
+}
+
+/* ===== 无障碍：跳到正文（平时藏在屏幕外，Tab 才出现） ===== */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 999;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  letter-spacing: var(--ls-wide);
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  left: 0;
+}
+
+/* ===== 布局容器 ===== */
+.wrap {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+/* ===== 区块：靠细线分区，不用色块交替 ===== */
+section {
+  padding: var(--sp-6) 0;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== 章节标题：编号 + 标题 + 右侧英文提示 ===== */
+.sec-title {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: var(--sp-3);
+}
+
+.sec-title .no {
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.sec-title h2 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.sec-title .hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  letter-spacing: var(--ls-wide);
+  color: var(--text-muted);
+}
+
+/* ===== 等宽小字工具类（用于编号、标签、状态） ===== */
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  letter-spacing: var(--ls-wide);
+}
+
+/* ===== 页面头（首页 / 列表页 / 详情页通用） ===== */
+.page-head {
+  padding: 48px 0 36px;
+}
+
+.page-head .kicker {
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-2);
+}
+
+.page-head h1 {
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.06;
+  letter-spacing: -1.4px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.page-head .lead {
+  max-width: 56ch;
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin-bottom: var(--sp-3);
+}
+
+.page-head .back {
+  display: inline-block;
+  margin-bottom: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  letter-spacing: var(--ls-wide);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.page-head .back:hover {
+  color: var(--accent);
+}
+
+/* ===== 表格一：索引表（项目 / 笔记列表） ===== */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tbl th {
+  padding: 0 12px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.tbl td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.tbl tbody tr:hover td {
+  background: var(--bg-alt);
+}
+
+.tbl .num {
+  width: 46px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tbl .name {
+  font-weight: 600;
+}
+
+/* 索引表里的条目链接（首页 / 项目索引 / 笔记索引共用）：
+   下划线隐去，靠 hover 变强调色 + 细线提示可点 */
+.tbl .name a {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tbl .name a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tbl .stack {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.tbl .st {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* ===== 表格二：规格表（键值对，用于首屏与项目详情） ===== */
+.spec {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.spec th,
+.spec td {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.spec th {
+  width: 130px;
+  background: var(--bg-alt);
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: var(--ls-wide);
+  white-space: nowrap;
+}
+
+.spec td b {
+  font-weight: 600;
+}
+
+/* ===== 表格三：能力表（键值行，首页"能力"与关于页"方向"共用） =====
+   注意：<th> 的宽度是**有意的跨页分叉**（index 150px / about 130px），
+   所以 width 不在这里给，留在各自页面里，避免把差异强行统一。 */
+.cap {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.cap th {
+  padding: 0 14px 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cap td {
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* 能力表里的"·"分隔符：必须比上面的 .cap td 更具体，否则会被其文字色吃掉
+   （对比度问题 #12 修的就是它，这里保留 .cap 前缀不是冗余） */
+.cap .dim {
+  color: var(--text-muted);
+}
+
+/* ===== 图片占位（真实图片接入前的位置示意） ===== */
+.ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--thumb-stripe-a),
+    var(--thumb-stripe-a) 11px,
+    var(--thumb-stripe-b) 11px,
+    var(--thumb-stripe-b) 22px
+  );
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ===== Markdown 正文（项目详情页与笔记详情页共用） ===== */
+.prose {
+  max-width: 72ch;
+  /* 网格项默认 min-width:auto，会让窄屏单列无法收缩（笔记详情页曾整页溢出到 410px） */
+  min-width: 0;
+}
+
+.prose h2 {
+  margin: 32px 0 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent);
+  font-size: 18px;
+  letter-spacing: -0.2px;
+}
+
+.prose h2:first-child {
+  margin-top: 0;
+}
+
+.prose h3 {
+  margin: 24px 0 10px;
+  font-size: 16px;
+}
+
+.prose p {
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+  line-height: 1.85;
+}
+
+.prose ul,
+.prose ol {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  color: var(--text-secondary);
+}
+
+.prose li {
+  margin-bottom: 6px;
+}
+
+.prose strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.prose a {
+  color: var(--accent);
+}
+
+.prose code {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.prose pre {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  overflow-x: auto;
+  /* 长代码行在块内滚动，不撑破外层网格 */
+  min-width: 0;
+}
+
+.prose pre code {
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.prose blockquote {
+  margin: 0 0 20px;
+  padding: 10px 16px;
+  border-left: 2px solid var(--border-strong);
+  background: var(--bg-alt);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.prose blockquote p {
+  margin: 0;
+}
+
+.prose table {
+  width: 100%;
+  margin: 0 0 20px;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.prose th,
+.prose td {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--bg-alt);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  font-weight: 500;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.prose hr {
+  margin: 28px 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== 标签：描边小签，不用底色块 ===== */
+.tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: var(--ls-wide);
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+/* ===== 联系条目组（首页"联系"、关于页"联系"、404"去这里"共用） ===== */
+.contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4) var(--sp-6);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-decoration: none;
+}
+
+.item .k {
+  color: var(--text-muted);
+}
+
+.item .v {
+  color: var(--accent);
+  font-size: 14px;
+  border-bottom: 1px solid transparent;
+}
+
+.item:hover .v {
+  border-bottom-color: var(--accent);
+}
+
+/* ===== 上下篇导航（项目详情页 / 笔记详情页共用） ===== */
+.pager {
+  padding: var(--sp-3) 0 var(--sp-6);
+  border-top: 1px solid var(--border);
+}
+
+.pager-in {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-0);
+  letter-spacing: var(--ls-wide);
+}
+
+.pager a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.pager a:hover {
+  text-decoration: underline;
+}
+
+.pager .right {
+  text-align: right;
+}
+
+/* 弱化文字（上下篇导航的首篇/末篇占位等） */
+.dim {
+  color: var(--text-muted);
+}
+
+/* ===== M3.5 互动层（克制版）===== */
+
+/* A1 页面切换淡入：时长压到 150ms，且尊重"减少动态效果" */
+::view-transition-old(root) {
+  animation: vt-fade-out 0.15s ease both;
+}
+
+::view-transition-new(root) {
+  animation: vt-fade-in 0.15s ease both;
+}
+
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* A2 区块进入视口纯淡入（无位移；类由脚本添加，关掉 JS 时元素本就可见） */
+.fade-ready {
+  opacity: 0;
+}
+
+.fade-ready.in {
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+
+/* A3 图块边界反馈：只变边框色，不做位移与阴影 */
+.cover,
+.fig,
+.feature-ph {
+  transition: border-color 0.2s ease;
+}
+
+.cover:hover,
+.fig:hover {
+  border-color: var(--accent);
+}
+
+/* A5 回到顶部：直角小方块 */
+.to-top {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.to-top.on {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 无 JS 兜底：按钮默认带 hidden 属性（不进 Tab 序）。
+   这条作者样式用于压过上面 .to-top 的 display:flex——否则 [hidden] 会被覆盖而失效。 */
+.to-top[hidden] {
+  display: none;
+}
+
+.to-top:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ===== 无障碍：尊重"减少动态效果" ===== */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* ClientRouter 的转场动画显式关掉：不再依赖上面 0.01ms 的隐式兜底。
+     转场伪元素选择器更具体、或上面的 !important 被改动时，reduce 都不会静默失效。 */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* ===== 响应式：规格表转堆叠、索引表收起技术栈列 ===== */
+@media (max-width: 800px) {
+  .wrap {
+    padding: 0 20px;
+  }
+
+  section {
+    padding: var(--sp-4) 0;
+  }
+
+  .spec,
+  .spec tbody,
+  .spec tr,
+  .spec th,
+  .spec td {
+    display: block;
+    width: auto;
+  }
+
+  .spec tr {
+    border: 1px solid var(--border);
+    margin-bottom: -1px;
+  }
+
+  .spec th,
+  .spec td {
+    border: none;
+  }
+
+  .spec th {
+    padding: 8px 12px 0;
+  }
+
+  .spec td {
+    padding: 0 12px 10px;
+  }
+
+  .tbl .stack,
+  .tbl .col-stack {
+    display: none;
+  }
+}

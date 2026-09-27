@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="WWX">
+  <rect width="32" height="32" fill="#fbfaf7"/>
+  <g fill="none" stroke="#c2410c" stroke-width="2">
+    <rect x="9" y="9" width="14" height="14"/>
+    <path d="M13 9V4M19 9V4M13 28v-5M19 28v-5M9 13H4M9 19H4M28 13h-5M28 19h-5"/>
+  </g>
+</svg>

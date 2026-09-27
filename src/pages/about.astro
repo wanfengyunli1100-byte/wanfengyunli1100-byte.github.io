@@ -1,0 +1,176 @@
+---
+/**
+ * 关于我（M3a）
+ * 内容来源：旧站 resume/index.html 的「关于我」区块（既有事实，未编造）
+ * 体例：与首页一致的数据手册风 —— 页头规格表 + 编号区块
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { site, profileRow, toPairs } from '../config/site';
+
+/** 页头规格表（两列键值对，一行两项）：行序在本页定义，值全部来自 site.ts */
+const profileRows = toPairs([
+  profileRow('ROLE'),
+  profileRow('BASE'),
+  profileRow('EDU'),
+  profileRow('FIELD'),
+  profileRow('KEYS'),
+  { k: 'EMAIL', v: site.email },
+]);
+
+/** 经历 */
+const experience = [
+  {
+    period: '2026.09 — 至今',
+    role: 'FAE 现场应用工程师',
+    note: '芯片与器件方向，深圳',
+  },
+  {
+    period: '2022 — 2026',
+    role: '电子信息工程 · 本科',
+    note: '大连大学 · 辩论队负责人',
+  },
+];
+
+/**
+ * 方向（技能分组，来源旧站「技能概览」+ 项目实际用到的工具）
+ *
+ * 与 index.astro 的 `capabilities` 是**两种视角、分别维护**，不是同一份数据的两个副本：
+ * 这里讲"能做哪些能力领域"（硬件底层 / AI 与数据 / 应用开发），首页讲"技术栈分几层"。
+ * 复核报告 #19 指出这有对不上的风险 —— 若日后合并为单一来源，先定分组口径再动。
+ */
+const focus = [
+  { k: '硬件底层', items: ['C', 'STM32', 'UART / SPI', 'UDP', 'KiCad PCB', '焊接调试'] },
+  { k: 'AI 与数据', items: ['Python', 'Ollama', 'QLoRA', 'n8n'] },
+  { k: '应用开发', items: ['Qt / PyQt', '微信小程序', 'Docker', 'Git / Linux'] },
+];
+---
+
+<BaseLayout title={`关于 · ${site.name}`} description={`${site.name}：从 STM32 到 QLoRA，技术路径清晰的全链路开发者。`}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="kicker">ABOUT / 关于</p>
+      <h1>{site.name}</h1>
+      <p class="lead">
+        从 STM32 到 QLoRA，技术路径清晰的全链路开发者。相信技术既要扎根硬件、也要面向 AI，
+        全链路能力才是竞争力。
+      </p>
+
+      <table class="spec">
+        <tbody>
+          {
+            profileRows.map((row) => (
+              <tr>
+                {row.map((cell) => (
+                  <>
+                    <th scope="row">{cell.k}</th>
+                    <td>{cell.b ? <b>{cell.v}</b> : cell.v}</td>
+                  </>
+                ))}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-title">
+        <span class="no">01</span><h2>经历</h2><span class="hint">EXPERIENCE</span>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th scope="col" class="col-period">时间</th>
+            <th scope="col">身份</th>
+            <th scope="col">说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            experience.map((e) => (
+              <tr>
+                <td class="mono-cell">{e.period}</td>
+                <td class="name">{e.role}</td>
+                <td>{e.note}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-title">
+        <span class="no">02</span><h2>方向</h2><span class="hint">FOCUS</span>
+      </div>
+      <table class="cap">
+        <tbody>
+          {
+            focus.map((row) => (
+              <tr>
+                <th scope="row">{row.k}</th>
+                <td>
+                  {row.items.map((it, i) => (
+                    <>
+                      {i > 0 && <span class="dim"> · </span>}
+                      <span>{it}</span>
+                    </>
+                  ))}
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-title">
+        <span class="no">03</span><h2>联系</h2><span class="hint">CONTACT</span>
+      </div>
+      <div class="contact">
+        <a class="item" href={`mailto:${site.email}`}>
+          <span class="k mono">EMAIL</span>
+          <span class="v">{site.email}</span>
+        </a>
+        <a class="item" href={site.github} target="_blank" rel="noopener">
+          <span class="k mono">GITHUB</span>
+          <span class="v">{site.githubUser}</span>
+        </a>
+        <a class="item" href="/projects/">
+          <span class="k mono">PROJECTS</span>
+          <span class="v">项目索引 →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .mono-cell {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  /* 能力表（与首页同构）：公共部分在 base.css 的 .cap（表格三） */
+  /* <th> 宽度 130px 是本页与 index 的**有意分叉**，故留在页面里 */
+  .cap th {
+    width: 130px;
+  }
+
+  /* 联系：.contact / .item 在 base.css */
+
+  @media (max-width: 800px) {
+    .mono-cell {
+      white-space: normal;
+    }
+  }
+</style>
