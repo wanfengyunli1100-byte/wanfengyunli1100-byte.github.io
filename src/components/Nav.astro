@@ -64,7 +64,7 @@ import { site } from '../config/site';
        ⚠ overflow 非 visible 会把另一轴也算成 auto 并裁剪绘制 —— outline 也在被裁之列。
        padding 是给 :focus-visible 留的绘制空间，需要 ≥ outline 宽 2px + outline-offset 2px
        （base.css:45-46）= 4px；少 1px 焦点环外缘就被削薄一圈
-       （原先写 3px，被 `site-probe.mjs` 的 focus 检查抓出来）。 */
+       （原先写 3px，实测焦点环外缘会被削薄一圈）。 */
     overflow-x: auto;
     min-width: 0;
     padding: 4px;

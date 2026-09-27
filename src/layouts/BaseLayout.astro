@@ -40,6 +40,8 @@ const ogImage = new URL('/og.png', Astro.site).href;
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="canonical" href={pageUrl} />
+    {/* 影子部署期不收录（CI 注入 PUBLIC_NOINDEX=1 时输出）；正式站与本地构建都不输出这一行 */}
+    {import.meta.env.PUBLIC_NOINDEX === '1' && <meta name="robots" content="noindex, nofollow" />}
     {/* 分享卡片：微信 / 钉钉 / 飞书等按 OG 渲染（卡片图见 public/og.png，源文件 docs/og_card.html） */}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={site.name} />

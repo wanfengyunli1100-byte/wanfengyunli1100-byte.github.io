@@ -3,3 +3,16 @@ dist/
 .astro/
 .DS_Store
 *.log
+
+# 环境与凭据（永不入库）
+.env
+.env.*
+
+# 备份文件（家规：改动前先备份 .bak）
+*.bak
+
+# 编辑器与系统
+.vscode/
+.idea/
+Thumbs.db
+*.tsbuildinfo

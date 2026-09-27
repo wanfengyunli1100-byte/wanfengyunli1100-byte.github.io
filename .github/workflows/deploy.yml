@@ -7,8 +7,12 @@
 # 若改用其它仓库名，站点会落在 /<repo>/ 子路径，需把所有绝对路径改成
 # import.meta.env.BASE_URL 前缀（约 8-10 处）——这是选择主站仓库名的直接原因。
 #
+# 影子期不收录：构建时注入 PUBLIC_NOINDEX=1，BaseLayout 会输出
+# <meta name="robots" content="noindex">；而 canonical / og:url / sitemap 仍指向
+# 正式域名（那是"影子站指向正本"的正常语义，且是单向声明，改不到正式站）。
+#
 # 部署前置（一次性）：仓库 Settings → Pages → Source 选 "GitHub Actions"。
-# 也可用 CLI 完成：gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
+# 也可用 CLI：gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
 
 name: Deploy to GitHub Pages
 
@@ -31,14 +35,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # 官方 Astro Action：装依赖（自动探测 package-lock.json → npm）→ 构建 → 上传 Pages artifact
-      # cache 默认 true：会缓存 Astro 构建缓存（将来接入图片管线后，这里能省下图片优化时间）
+      # cache 会保留 Astro 构建缓存（将来接入图片管线后，这里能省下图片优化时间）
       - name: Build and upload site
-        uses: withastro/action@v3
+        uses: withastro/action@v6
+        env:
+          PUBLIC_NOINDEX: '1'    # 影子站不收录
         with:
-          node-version: 22
+          node-version: 24       # 与本地开发环境一致
           out-dir: dist
 
   deploy:
@@ -50,4 +56,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
